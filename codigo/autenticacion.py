@@ -23,12 +23,23 @@ class Usuario:
     
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el usuario a diccionario para serialización JSON."""
-        
+        return{"id": self.id,
+            "nombre_usuario": self.nombre_usuario,
+            "hash_contraseña": self.hash_contraseña,
+            "email": self.email,
+            "fecha_registro": self.fecha_registro
+            }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Usuario':
+    def from_dict(cls, datos: Dict[str, Any]) -> 'Usuario':
         """Crea un usuario desde un diccionario."""
-        
+        return cls(
+            id_usuario=datos.get('id', ''),
+            nombre_usuario=datos.get('nombre_usuario', ''),
+            hash_contraseña=datos.get('hash_contraseña', ''),
+            email=datos.get('email', ''),
+            fecha_registro=datos.get('fecha_registro', '')
+        )
 
 class UsuarioManager:
     """Gestiona el registro y autenticación de usuarios de forma segura."""

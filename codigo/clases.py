@@ -8,52 +8,64 @@ import os
 import secrets
 from typing import Dict, List, Optional, Any
 from datetime import datetime
-import base64
 import logging
 
 
 class Perro:
     """Clase que representa un perro en el sistema."""
     
-    def __init__(self, nombre: str, identificador_oficial: str, foto_base64: str = ""):
+    def __init__(self, id_perro: str, nombre: str, identificador_oficial: str, descripcion: str = ""):
         """
         Inicializa un perro con sus datos básicos.
         
         Args:
+            id_perro: ID único generado por el manager
             nombre: Nombre del perro
             identificador_oficial: Número de microchip, pedigree, o identificación oficial
-            foto_base64: Foto del perro codificada en base64 (opcional)
+            descripcion: Descripción del perro (raza, color, características, etc.)
         """
-        self.id = secrets.token_hex(8)  # ID único del perro
+        self.id = id_perro
         self.nombre = nombre
         self.identificador_oficial = identificador_oficial
-        self.foto_base64 = foto_base64
+        self.descripcion = descripcion
         self.fecha_registro = datetime.now().isoformat()
-        self.publico = True  # Si la foto es pública o privada
+        self.publico = True  # Si la descripción es pública o privada
     
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el perro a diccionario para almacenamiento."""
-        
+        return{"id": self.id,
+            "nombre": self.nombre,
+            "identificador_oficial": self.identificador_oficial,
+            "descripcion": self.descripcion,
+            "fecha_registro": self.fecha_registro,
+            "publico": self.publico
+            }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Perro':
+    def from_dict(cls, datos: Dict[str, Any]) -> 'Perro':
         """Crea un perro desde un diccionario."""
-        
+        return cls(
+            id_perro=datos.get('id', ''),
+            nombre=datos.get('nombre', ''),
+            identificador_oficial=datos.get('identificador_oficial', ''),
+            descripcion=datos.get('descripcion', '')
+        )
 
 
 class Mensaje:
     """Clase que representa un mensaje entre usuarios."""
     
-    def __init__(self, remitente_id: str, destinatario_id: str, contenido: str):
+    def __init__(self, id_mensaje: str, remitente_id: str, destinatario_id: str, contenido: str):
         """
         Inicializa un mensaje.
         
         Args:
+            id_mensaje: ID único generado por el manager
             remitente_id: ID del usuario que envía el mensaje
             destinatario_id: ID del usuario que recibe el mensaje
             contenido: Contenido del mensaje (se cifrará automáticamente)
         """
-        self.id = secrets.token_hex(8)  # ID único del mensaje
+        self.id = id_mensaje
         self.remitente_id = remitente_id
         self.destinatario_id = destinatario_id
         self.contenido_original = contenido  # Contenido en texto plano (antes de cifrar)
@@ -63,13 +75,29 @@ class Mensaje:
     
     def to_dict(self) -> Dict[str, Any]:
         """Convierte el mensaje a diccionario para almacenamiento."""
-        
+        return {"id": self.id,
+            "remitente_id": self.remitente_id,
+            "destinatario_id": self.destinatario_id,
+            "contenido_original": self.contenido_original,
+            "contenido_cifrado": self.contenido_cifrado,
+            "fecha_envio": self.fecha_envio,
+            "leido": self.leido
+            }
     
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'Mensaje':
+    def from_dict(cls, datos: Dict[str, Any]) -> 'Mensaje':
         """Crea un mensaje desde un diccionario."""
-        
-        
+        mensaje = cls(
+            id_mensaje=datos.get('id', ''),
+            remitente_id=datos.get('remitente_id', ''),
+            destinatario_id=datos.get('destinatario_id', ''),
+            contenido=datos.get('contenido_original', '')
+        )
+        # Restaurar propiedades adicionales
+        mensaje.contenido_cifrado = datos.get('contenido_cifrado', '')
+        mensaje.fecha_envio = datos.get('fecha_envio', '')
+        mensaje.leido = datos.get('leido', False)
+        return mensaje
 
 
 class PerroManager:
