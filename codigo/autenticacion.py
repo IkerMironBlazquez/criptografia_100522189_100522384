@@ -142,11 +142,11 @@ class UsuarioManager:
         """
         try:
             # Convertimos la contraseña a bytes
-            contraseña_bytes = contraseña.encode(utf-8)
+            contraseña_bytes = contraseña.encode("utf-8")
 
             # Generamos un salt aleatorio y único para la contraseña con gensalt() y hacemos el hash y lo convertimos a string para almaacenarlo en JSON
             hash_bytes = bcrypt.hashpw(contraseña_bytes, bcrypt.gensalt())
-            hash_string = hash_bytes.decode(utf-8)
+            hash_string = hash_bytes.decode("utf-8")
 
             # Log de operación exitosa 
             self.logger.info("Hash de contraseña generado correctamente")
@@ -155,9 +155,9 @@ class UsuarioManager:
             return hash_string
         
         except Exception as e:
-        # Si algo falla, loguear error y lanzar excepción
-        self.logger.error(f"Error generando hash: {e}")
-        raise
+            # Si algo falla, loguear error y lanzar excepción
+            self.logger.error(f"Error generando hash: {e}")
+            raise
             
     
     def verificar_contraseña(self, contraseña: str, hash_almacenado: str) -> bool:
@@ -207,7 +207,7 @@ class UsuarioManager:
             return False
         
         #Comprobar que la contraseña sea robusta
-        if not self.validar_contraseña_robusta:
+        if not self.validar_contraseña_robusta(contraseña):
             self.logger.warning(f"Registro fallido por contraseña débil: {nombre_usuario}")
             return False
         
@@ -216,7 +216,7 @@ class UsuarioManager:
             id_usuario = secrets.token_hex(8) # Genera string aleatorio de 16 caracteres
             hash_contraseña = self.hash_contraseña(contraseña)
             fecha_registro = datetime.now().isoformat()
-            usuario = Usuario(id_usuario=id_usuario
+            usuario = Usuario(id_usuario=id_usuario,
                             nombre_usuario=nombre_usuario,
                             hash_contraseña=hash_contraseña,
                             email=email,
