@@ -4,12 +4,12 @@ Implementa el apartado 1 de la práctica: Registro y autenticación de usuarios.
 """
 
 import bcrypt
-import hashlib
 import secrets
 import json
 import os
 import re
 from typing import Dict, Optional, Any
+from datetime import datetime
 import logging
 
 class Usuario:
@@ -45,7 +45,7 @@ class Usuario:
 class UsuarioManager:
     """Gestiona el registro y autenticación de usuarios de forma segura."""
     
-    def __init__(self, archivo_usuarios: str = "usuarios.json"):
+    def __init__(self, archivo_usuarios: str = "JSON/usuarios.json"):
         self.archivo_usuarios = archivo_usuarios
         self.usuarios: Dict[str, Dict[str, Any]] = {}
         
@@ -61,9 +61,6 @@ class UsuarioManager:
     
     def cargar_usuarios(self) -> None:
         """Carga usuarios desde el archivo JSON si existe."""
-        import os
-        import json
-
         try:
             # Verificar si el archivo existe
             if os.path.exists(self.archivo_usuarios):
@@ -198,9 +195,6 @@ class UsuarioManager:
         Returns:
             bool: True si el registro fue exitoso, False si el usuario ya existe o la contraseña no es robusta
         """
-        from datetime import datetime
-        import secrets #generar ID único y seguro 
-
         #Comprobar que no exista el nombre de usuario
         if nombre_usuario in self.usuarios:
             self.logger.warning(f"Intento de registro de usuario existente: {nombre_usuario}")
@@ -257,11 +251,54 @@ class UsuarioManager:
         else:
             self.logger.warning(f"Intento de login con contraseña incorrecta: {nombre_usuario}")
             return None
-    
     def listar_usuarios(self) -> list:
         """Retorna lista de nombres de usuarios registrados (para pruebas)."""
         return list(self.usuarios.keys())
     
-    def eliminar_usuario(self, nombre_usuario: str) -> bool:
-        """Elimina un usuario del sistema."""
-        pass
+    def eliminar_usuario(self, nombre_usuario: str, perro_manager=None, mensaje_manager=None) -> bool:
+        """Elimina un usuario del sistema y, opcionalmente, sus recursos asociados.
+
+        Si se proporciona `perro_manager` se recorrerán los perros del usuario y se
+        llamará a `perro_manager.borrar_perro(usuario_id, perro_id)` para cada uno.
+        Si se proporciona `mensaje_manager` y tiene el método
+        `borrar_mensajes_de_usuario(usuario_id)` se intentará borrar los mensajes
+        asociados también.
+        """
+        usuario = self.usuarios.get(nombre_usuario)
+        if not usuario:
+            return False
+
+        usuario_id = usuario.get("id")
+
+        # Eliminar el usuario de la colección y persistir
+        try:
+            del self.usuarios[nombre_usuario]
+            self.guardar_usuarios()
+            self.logger.info(f"Usuario {nombre_usuario} eliminado (id={usuario_id})")
+        except Exception as e:
+            self.logger.error(f"Error eliminando usuario {nombre_usuario}: {e}")
+            return False
+
+        # Borrar perros asociados (si se proporciona el manager)
+        if perro_manager is not None:
+            try:
+                # Tomar una copia de los ids para no mutar la lista mientras iteramos
+                perros_list = perro_manager.perros.get(usuario_id, [])
+                perro_ids = [p.get("id") for p in perros_list]
+                for pid in perro_ids:
+                    try:
+                        perro_manager.borrar_perro(usuario_id, pid)
+                    except Exception as e:
+                        # No abortamos si falla un borrado individual
+                        self.logger.warning(f"Error borrando perro {pid} de {usuario_id}: {e}")
+            except Exception as e:
+                self.logger.warning(f"No se pudieron borrar perros de {usuario_id}: {e}")
+
+        # Borrar mensajes asociados (si se proporciona el manager y tiene el método)
+        if mensaje_manager is not None and hasattr(mensaje_manager, "borrar_mensajes_de_usuario"):
+            try:
+                mensaje_manager.borrar_mensajes_de_usuario(usuario_id)
+            except Exception as e:
+                self.logger.warning(f"No se pudieron borrar mensajes de {usuario_id}: {e}")
+
+        return True

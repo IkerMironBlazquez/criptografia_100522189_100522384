@@ -1,0 +1,38 @@
+{
+    "78dff0e6e03c5cbe": [
+        {
+            "id": "36dece227a1bc14f",
+            "nombre": "Brady",
+            "identificador_oficial": "brady0123456789",
+            "descripcion": "Perro Brady de juan",
+            "fecha_registro": "2025-10-22T20:23:16.178647",
+            "publico": true
+        },
+        {
+            "id": "8b4820bd84761cc9",
+            "nombre": "Graffity",
+            "identificador_oficial": "graffity0123456",
+            "descripcion": "Perro Graffity de juan",
+            "fecha_registro": "2025-10-22T20:23:16.180643",
+            "publico": true
+        }
+    ],
+    "3bb9eb394741e30c": [
+        {
+            "id": "724ee65d89cda2cd",
+            "nombre": "Oliver",
+            "identificador_oficial": "oliver012345678",
+            "descripcion": "Perro Oliver de pedro",
+            "fecha_registro": "2025-10-22T20:23:16.398789",
+            "publico": true
+        },
+        {
+            "id": "c925aead6644c4e8",
+            "nombre": "Rasta",
+            "identificador_oficial": "rasta0123456789",
+            "descripcion": "Perro Rasta de pedro",
+            "fecha_registro": "2025-10-22T20:23:16.400792",
+            "publico": true
+        }
+    ]
+}

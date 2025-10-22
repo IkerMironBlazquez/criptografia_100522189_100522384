@@ -1,0 +1,16 @@
+{
+    "juan": {
+        "id": "78dff0e6e03c5cbe",
+        "nombre_usuario": "juan",
+        "hash_contraseña": "$2b$12$UhqTY3AieqJ7Kbmiekjhp.1dFqcGypGrHrgoj0WHp2tXmWwSMnYR2",
+        "email": "juan@example.com",
+        "fecha_registro": "2025-10-22T20:23:16.176642"
+    },
+    "pedro": {
+        "id": "3bb9eb394741e30c",
+        "nombre_usuario": "pedro",
+        "hash_contraseña": "$2b$12$dcl3Mv2dfO5oGYLbI2kYSunUJ7k.IWQ7tSqgfDwGn0cpAftGV3qMG",
+        "email": "pedro@example.com",
+        "fecha_registro": "2025-10-22T20:23:16.397781"
+    }
+}
