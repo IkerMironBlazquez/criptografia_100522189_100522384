@@ -10,6 +10,7 @@ import re
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import logging
+from criptografia import CriptografiaManager
 
 
 class Perro:
@@ -241,7 +242,7 @@ class PerroManager:
 
 
 class MensajeManager:
-    """Gestiona los mensajes entre usuarios."""
+    """Gestiona los mensajes entre usuarios del sistema con cifrado automático."""
     
     def __init__(self, archivo_mensajes: str = "JSON/mensajes.json"):
         self.archivo_mensajes = archivo_mensajes
@@ -249,6 +250,14 @@ class MensajeManager:
         
         # Configurar logging
         self.logger = logging.getLogger(__name__)
+        
+        # Inicializar gestor criptográfico
+        try:
+            self.crypto_manager = CriptografiaManager()
+            self.logger.info("Sistema de cifrado inicializado correctamente")
+        except Exception as e:
+            self.logger.error(f"Error inicializando sistema de cifrado: {e}")
+            raise
         
         # Cargar mensajes después de configurar logger
         self.cargar_mensajes()
@@ -280,31 +289,73 @@ class MensajeManager:
     
     def enviar_mensaje(self, remitente_id: str, destinatario_id: str, contenido: str) -> Mensaje:
         """
-        Crea un nuevo mensaje (se cifrará en criptografía.py).
+        Crea un nuevo mensaje y lo cifra automáticamente usando AES-256-GCM.
         
         Args:
             remitente_id: ID del usuario que envía
             destinatario_id: ID del usuario que recibe
-            contenido: Contenido del mensaje
+            contenido: Contenido del mensaje (se cifrará automáticamente)
         
         Returns:
-            Mensaje: El mensaje creado
+            Mensaje: El mensaje creado con contenido cifrado
         """
-        id_mensaje = secrets.token_hex(8) # generar ID único
-        mensaje = Mensaje(id_mensaje, remitente_id, destinatario_id, contenido)
-        self.mensajes.append(mensaje.to_dict())
-        self.guardar_mensajes()
-        self.logger.info(f"Mensaje enviado: {id_mensaje} de {remitente_id} a {destinatario_id}")
-        return mensaje
+        try:
+            # Generar ID único para el mensaje
+            id_mensaje = secrets.token_hex(8)
+            
+            # Crear objeto mensaje
+            mensaje = Mensaje(id_mensaje, remitente_id, destinatario_id, contenido)
+            
+            # CIFRAR EL CONTENIDO automáticamente
+            datos_cifrados = self.crypto_manager.cifrar_mensaje(contenido)
+            mensaje.contenido_cifrado = json.dumps(datos_cifrados)
+            
+            # Guardar en la lista y persistir
+            self.mensajes.append(mensaje.to_dict())
+            self.guardar_mensajes()
+            
+            self.logger.info(f"Mensaje enviado y cifrado: {id_mensaje} de {remitente_id} a {destinatario_id}")
+            return mensaje
+            
+        except Exception as e:
+            self.logger.error(f"Error enviando mensaje cifrado: {e}")
+            raise
     
     def obtener_mensajes_usuario(self, usuario_id: str) -> List[Mensaje]:
-        """Obtiene todos los mensajes enviados y recibidos por un usuario."""
-        resultados = [
-            Mensaje.from_dict(m)
-            for m in self.mensajes
-            if m.get("remitente_id") == usuario_id or m.get("destinatario_id") == usuario_id
-        ]
-        return resultados
+        """
+        Obtiene todos los mensajes enviados y recibidos por un usuario.
+        Los mensajes se descifran automáticamente para mostrar el contenido.
+        """
+        try:
+            # Filtrar mensajes del usuario
+            mensajes_filtrados = [
+                m for m in self.mensajes
+                if m.get("remitente_id") == usuario_id or m.get("destinatario_id") == usuario_id
+            ]
+            
+            resultados = []
+            for m in mensajes_filtrados:
+                # Crear objeto mensaje
+                mensaje = Mensaje.from_dict(m)
+                
+                # DESCIFRAR EL CONTENIDO automáticamente si está cifrado
+                if mensaje.contenido_cifrado:
+                    try:
+                        mensaje.contenido_original = self.crypto_manager.descifrar_desde_almacenamiento(
+                            mensaje.contenido_cifrado
+                        )
+                        self.logger.debug(f"Mensaje {mensaje.id} descifrado correctamente")
+                    except Exception as e:
+                        self.logger.error(f"Error descifrando mensaje {mensaje.id}: {e}")
+                        mensaje.contenido_original = "[ERROR: Mensaje no pudo ser descifrado]"
+                
+                resultados.append(mensaje)
+            
+            return resultados
+            
+        except Exception as e:
+            self.logger.error(f"Error obteniendo mensajes de usuario {usuario_id}: {e}")
+            return []
     
     def marcar_como_leido(self, mensaje_id: str, usuario_id: str) -> bool:
         """Marca un mensaje como leído si el usuario es el destinatario."""
@@ -315,4 +366,74 @@ class MensajeManager:
                 self.logger.info(f"Mensaje {mensaje_id} marcado como leído por {usuario_id}")
                 return True
         return False
+    
+    def verificar_sistema_cifrado(self) -> bool:
+        """
+        Verifica que el sistema de cifrado de mensajes funcione correctamente.
+        
+        Returns:
+            True si el cifrado/descifrado funciona correctamente
+        """
+        try:
+            # Usar el verificador interno del crypto_manager
+            return self.crypto_manager.verificar_integridad_sistema()
+        except Exception as e:
+            self.logger.error(f"Error verificando sistema de cifrado: {e}")
+            return False
+    
+    def obtener_estadisticas_cifrado(self) -> Dict[str, Any]:
+        """
+        Obtiene estadísticas sobre el cifrado de mensajes.
+        
+        Returns:
+            Dict con estadísticas del sistema de cifrado
+        """
+        try:
+            total_mensajes = len(self.mensajes)
+            mensajes_cifrados = sum(1 for m in self.mensajes if m.get('contenido_cifrado'))
+            
+            return {
+                'total_mensajes': total_mensajes,
+                'mensajes_cifrados': mensajes_cifrados,
+                'mensajes_texto_plano': total_mensajes - mensajes_cifrados,
+                'porcentaje_cifrado': (mensajes_cifrados / total_mensajes * 100) if total_mensajes > 0 else 0,
+                'sistema_criptografico': self.crypto_manager.obtener_informacion_sistema()
+            }
+        except Exception as e:
+            self.logger.error(f"Error obteniendo estadísticas de cifrado: {e}")
+            return {'error': str(e)}
+    
+    def borrar_mensajes_de_usuario(self, usuario_id: str) -> int:
+        """
+        Elimina todos los mensajes enviados y recibidos por un usuario.
+        
+        Args:
+            usuario_id: ID del usuario cuyos mensajes se van a eliminar
+            
+        Returns:
+            int: Número de mensajes eliminados
+        """
+        try:
+            # Contar mensajes antes de borrar
+            mensajes_iniciales = len(self.mensajes)
+            
+            # Filtrar mensajes que NO son del usuario
+            self.mensajes = [
+                m for m in self.mensajes
+                if m.get("remitente_id") != usuario_id and m.get("destinatario_id") != usuario_id
+            ]
+            
+            # Calcular cuántos se eliminaron
+            mensajes_eliminados = mensajes_iniciales - len(self.mensajes)
+            
+            # Guardar cambios
+            if mensajes_eliminados > 0:
+                self.guardar_mensajes()
+                self.logger.info(f"Eliminados {mensajes_eliminados} mensajes del usuario {usuario_id}")
+            
+            return mensajes_eliminados
+            
+        except Exception as e:
+            self.logger.error(f"Error eliminando mensajes del usuario {usuario_id}: {e}")
+            return 0
 

@@ -12,6 +12,7 @@ import os
 import sys
 import json
 import logging
+from datetime import datetime
 from typing import Optional, Dict, Any
 
 # Importar nuestros módulos
@@ -23,11 +24,8 @@ class AplicacionQuedadasPerros:
     
     def __init__(self):
         """Inicializa la aplicación y sus componentes."""
-        # Configurar logging
-        logging.basicConfig(
-            level=logging.INFO,
-            format='%(asctime)s - %(levelname)s - %(message)s'
-        )
+        # Configurar logging para archivo en lugar de consola
+        self._configurar_logging()
         self.logger = logging.getLogger(__name__)
         
         # Inicializar gestores
@@ -39,6 +37,79 @@ class AplicacionQuedadasPerros:
         self.usuario_actual = None
         self.logger.info("Aplicación iniciada correctamente")
     
+    def _configurar_logging(self):
+        """Configura el sistema de logging profesional - logs van a archivos, NO a consola."""
+        from datetime import datetime
+        import glob
+        
+        # Crear directorio de logs si no existe
+        log_dir = "logs"
+        os.makedirs(log_dir, exist_ok=True)
+        
+        # BORRAR LOGS ANTERIORES al iniciar la aplicación
+        try:
+            archivos_log = glob.glob(os.path.join(log_dir, "*.log"))
+            for archivo in archivos_log:
+                os.remove(archivo)
+        except Exception:
+            pass  # Silenciar errores de borrado de logs
+        
+        # Fecha actual para nombres de archivo
+        fecha_hoy = datetime.now().strftime('%Y-%m-%d')
+        
+        # Limpiar configuración previa
+        for handler in logging.root.handlers[:]:
+            logging.root.removeHandler(handler)
+        
+        # Configurar root logger
+        root_logger = logging.getLogger()
+        root_logger.setLevel(logging.DEBUG)
+        
+        # Evitar propagación para evitar duplicados
+        root_logger.propagate = False
+        
+        # Formato detallado para archivos
+        formatter_archivo = logging.Formatter(
+            '%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        
+        # Formato simple para errores críticos en consola
+        formatter_consola = logging.Formatter('❌ ERROR: %(message)s')
+        
+        # 1. Handler para archivo general (INFO y superior)
+        handler_archivo = logging.FileHandler(
+            filename=os.path.join(log_dir, f'app_{fecha_hoy}.log'),
+            mode='a',
+            encoding='utf-8'
+        )
+        handler_archivo.setLevel(logging.INFO)
+        handler_archivo.setFormatter(formatter_archivo)
+        root_logger.addHandler(handler_archivo)
+        
+        # 2. Handler específico SOLO para errores reales
+        class ErrorFilter(logging.Filter):
+            def filter(self, record):
+                return record.levelno >= logging.ERROR
+        
+        handler_errores = logging.FileHandler(
+            filename=os.path.join(log_dir, f'errores_{fecha_hoy}.log'),
+            mode='a',
+            encoding='utf-8'
+        )
+        handler_errores.setLevel(logging.ERROR)
+        handler_errores.addFilter(ErrorFilter())
+        handler_errores.setFormatter(formatter_archivo)
+        root_logger.addHandler(handler_errores)
+        
+        # 3. Handler para consola (SOLO ERRORES CRÍTICOS)
+        handler_consola = logging.StreamHandler()
+        handler_consola.setLevel(logging.CRITICAL)  # Solo errores muy graves
+        handler_consola.setFormatter(formatter_consola)
+        root_logger.addHandler(handler_consola)
+        
+
+    
     def mostrar_banner(self):
         """Muestra el banner de la aplicación."""
         print("\n" + "=" * 60)
@@ -46,8 +117,15 @@ class AplicacionQuedadasPerros:
         print("=" * 60)
         print("Práctica de Criptografía y Seguridad Informática")
         print("✓ Apartado 1: Autenticación segura (bcrypt)")
-        print("✓ Apartado 2: Cifrado simétrico (AES-256-CBC)")
-        print("✓ Apartado 3: Etiquetas de autenticación (HMAC-SHA256)")
+        print("✓ Apartado 2: Cifrado simétrico (AES-256-GCM)")
+        print("✓ Apartado 3: Autenticación integrada (GCM)")
+        
+        # Verificar que el sistema de cifrado funciona
+        if self.mensaje_manager.verificar_sistema_cifrado():
+            print("🔐 Sistema de cifrado: OPERATIVO")
+        else:
+            print("⚠️  Sistema de cifrado: ERROR")
+        
         print("=" * 60 + "\n")
     def mostrar_menu_principal(self):
         """Muestra el menú principal de la aplicación."""
@@ -67,7 +145,8 @@ class AplicacionQuedadasPerros:
         print("3. Explorar perros y contactar propietarios")
         print("4. Borrar mi perro")
         print("5. Ver mis mensajes")
-        print("6. Cerrar sesión")
+        print("6. Borrar mi cuenta")
+        print("7. Cerrar sesión")
         print("-" * 40)
 
     
@@ -306,9 +385,10 @@ class AplicacionQuedadasPerros:
                 mensaje
             )
             
-            # Mensaje creado y persistido por el manager (sin cifrado por ahora)
-            print(f"✓ ¡Mensaje enviado! (sin cifrar)")
-            print(f"ID del mensaje: {mensaje_obj.id}")
+            # Mensaje creado, cifrado y persistido por el manager
+            print(f"✅ ¡Mensaje enviado y cifrado con AES-256-GCM!")
+            print(f"📨 ID del mensaje: {mensaje_obj.id}")
+            print(f"🔐 Contenido cifrado automáticamente")
                 
         except Exception as e:
             print(f"❌ Error en el sistema de mensajes: {e}")
@@ -344,46 +424,136 @@ class AplicacionQuedadasPerros:
                 print(f"   Fecha: {mensaje.fecha_envio[:19] if hasattr(mensaje, 'fecha_envio') else 'N/A'}")
                 print(f"   Leído: {'Sí' if mensaje.leido else 'No'}")
                 
-                # Mostrar mensaje: si existe contenido cifrado lo indicamos,
-                # pero mostramos el contenido original si está disponible.
+                # Mostrar mensaje descifrado automáticamente
+                contenido = getattr(mensaje, 'contenido_original', 'Contenido no disponible')
+                
+                # Indicar si el mensaje estaba cifrado
                 if hasattr(mensaje, 'contenido_cifrado') and mensaje.contenido_cifrado:
-                    contenido = getattr(mensaje, 'contenido_original', None)
-                    if contenido:
-                        print(f"   Mensaje: {contenido[:100]}{'...' if len(contenido) > 100 else ''}")
-                    else:
-                        print("   Mensaje: (cifrado - descifrado pendiente de implementación)")
+                    print(f"   � Mensaje: {contenido[:100]}{'...' if len(contenido) > 100 else ''}")
+                    print("   🔐 Estado: Cifrado AES-256-GCM")
                 else:
-                    contenido = getattr(mensaje, 'contenido_original', 'Contenido no disponible')
-                    print(f"   Mensaje: {contenido}")
+                    print(f"   � Mensaje: {contenido[:100]}{'...' if len(contenido) > 100 else ''}")
+                    print("   📝 Estado: Texto plano")
                 
                 print()
                 
         except Exception as e:
-            print(f"❌ Error en el sistema de mensajes: {e}")
-            print("💡 Funcionalidad no implementada completamente aún")
+            print(f"❌ Error cargando mensajes: {e}")
+            print("💡 Verifica que el sistema de cifrado esté funcionando correctamente")
+    
+    def borrar_cuenta(self):
+        """Permite al usuario borrar su cuenta y todos sus datos asociados."""
+        if not self.usuario_actual:
+            print("❌ Error: No hay usuario autenticado")
+            return
+        
+        nombre_usuario = self.usuario_actual.get('nombre_usuario')
+        print(f"\n🗑️  BORRAR CUENTA: {nombre_usuario}")
+        print("⚠️  ADVERTENCIA: Esta acción eliminará permanentemente:")
+        print("   • Tu cuenta de usuario")
+        print("   • Todos tus perros registrados")
+        print("   • Todos tus mensajes")
+        print("   • No se puede deshacer")
+        print()
+        
+        # Confirmación 1
+        confirmar1 = input("¿Estás seguro de que quieres borrar tu cuenta? (escribe 'BORRAR'): ").strip()
+        if confirmar1 != "BORRAR":
+            print("❌ Cancelado. Tu cuenta está segura.")
+            return
+        
+        # Confirmación 2 - verificar contraseña
+        print("\n🔒 Por seguridad, confirma tu contraseña:")
+        contraseña = input("Contraseña actual: ").strip()
+        
+        if not self.usuario_manager.autenticar_usuario(nombre_usuario, contraseña):
+            print("❌ Contraseña incorrecta. Operación cancelada.")
+            return
+        
+        # Confirmación 3 - última oportunidad
+        print(f"\n⚠️  ÚLTIMA CONFIRMACIÓN:")
+        print(f"Se va a eliminar PERMANENTEMENTE la cuenta '{nombre_usuario}' y todos sus datos.")
+        confirmar_final = input("Escribe 'CONFIRMO' para proceder: ").strip()
+        
+        if confirmar_final != "CONFIRMO":
+            print("❌ Operación cancelada. Tu cuenta está segura.")
+            return
+        
+        try:
+            # Usar la función de eliminar_usuario que ya existe
+            exito = self.usuario_manager.eliminar_usuario(
+                nombre_usuario,
+                perro_manager=self.perro_manager,
+                mensaje_manager=self.mensaje_manager
+            )
+            
+            if exito:
+                print("✅ Cuenta eliminada exitosamente.")
+                print("👋 Gracias por usar nuestra aplicación.")
+                
+                # Cerrar sesión automáticamente
+                self.usuario_actual = None
+                
+                print("\nPresiona Enter para volver al menú principal...")
+                input()
+            else:
+                print("❌ Error: No se pudo eliminar la cuenta.")
+                print("💡 Contacta al administrador del sistema.")
+                
+        except Exception as e:
+            print(f"❌ Error eliminando cuenta: {e}")
+            self.logger.error(f"Error eliminando cuenta de {nombre_usuario}: {e}")
     
     def mostrar_info_sistema(self):
-        """Muestra información técnica del sistema."""
+        """Muestra información técnica del sistema con estadísticas de cifrado."""
         print("\n🔧 INFORMACIÓN DEL SISTEMA")
         print("\n📊 Algoritmos Criptográficos Implementados:")
         print("• Autenticación: bcrypt con salt automático")
-        print("• Cifrado simétrico: AES-256-CBC")
-        print("• Autenticación de mensajes: HMAC-SHA256")
-        print("• Generación de claves: PBKDF2 + secrets")
-        print("\n📈 Estado de la Implementación:")
-        print("✓ Apartado 1: Sistema de autenticación (bcrypt)")
-        print("✓ Apartado 2: Cifrado simétrico (AES-256-CBC)")
-        print("✓ Apartado 3: Autenticación de mensajes (HMAC-SHA256)")
-        print("⏳ Apartado 4: Firma digital (pendiente)")
-        print("⏳ Apartado 5: PKI y certificados (pendiente)")
+        print("• Cifrado simétrico: AES-256-GCM")
+        print("• Autenticación de mensajes: Integrada en GCM")
+        print("• Generación de claves: secrets (CSPRNG)")
+        print("• Vectores únicos: Nonce de 96 bits")
         
-        # Mostrar estadísticas si es posible
+        print("\n📈 Estado de la Implementación:")
+        print("✅ Apartado 1: Sistema de autenticación (bcrypt)")
+        print("✅ Apartado 2: Cifrado simétrico (AES-256-GCM)")
+        print("✅ Apartado 3: Autenticación integrada (GCM)")
+        
+        # Mostrar estadísticas detalladas
         try:
             usuarios_count = len(self.usuario_manager.listar_usuarios())
-            print(f"\n📊 Estadísticas actuales:")
+            stats_cifrado = self.mensaje_manager.obtener_estadisticas_cifrado()
+            
+            print(f"\n📊 Estadísticas del Sistema:")
             print(f"• Usuarios registrados: {usuarios_count}")
-        except:
-            print(f"\n📊 Estadísticas: No disponibles (módulos en desarrollo)")
+            print(f"• Total de mensajes: {stats_cifrado.get('total_mensajes', 0)}")
+            print(f"• Mensajes cifrados: {stats_cifrado.get('mensajes_cifrados', 0)}")
+            print(f"• Porcentaje cifrado: {stats_cifrado.get('porcentaje_cifrado', 0):.1f}%")
+            
+            # Info técnica del sistema criptográfico
+            crypto_info = stats_cifrado.get('sistema_criptografico', {})
+            if crypto_info:
+                print(f"\n🔐 Sistema Criptográfico:")
+                print(f"• Algoritmo: {crypto_info.get('algoritmo', 'N/A')}")
+                print(f"• Tamaño de clave: {crypto_info.get('tamaño_clave', 'N/A')}")
+                print(f"• Tamaño de nonce: {crypto_info.get('tamaño_nonce', 'N/A')}")
+                print(f"• Autenticación: {crypto_info.get('autenticacion', 'N/A')}")
+                
+                # Verificar integridad del sistema
+                if self.mensaje_manager.verificar_sistema_cifrado():
+                    print("• Estado: 🟢 SISTEMA OPERATIVO")
+                else:
+                    print("• Estado: 🔴 ERROR EN SISTEMA")
+            
+            # Información sobre logs
+            print(f"\n📋 Sistema de Logs:")
+            print(f"• Ubicación: logs/app_{datetime.now().strftime('%Y-%m-%d')}.log")
+            print(f"• Errores: logs/errores_{datetime.now().strftime('%Y-%m-%d')}.log")
+            print("• Nivel consola: Solo errores críticos")
+            print("• Nivel archivo: Información detallada")
+            
+        except Exception as e:
+            print(f"\n📊 Estadísticas: Error obteniendo datos ({e})")
     
     def ejecutar(self):
         """Ejecuta el bucle principal de la aplicación."""
@@ -424,6 +594,8 @@ class AplicacionQuedadasPerros:
                     elif opcion == "5":
                         self.ver_mensajes()
                     elif opcion == "6":
+                        self.borrar_cuenta()
+                    elif opcion == "7":
                         self.usuario_actual = None
                         print("✓ Sesión cerrada exitosamente")
                     else:
