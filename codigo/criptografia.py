@@ -42,21 +42,34 @@ class CriptografiaManager:
             Dict con las claves del sistema en base64
         """
         try:
-            if os.path.exists(self.archivo_claves):
+            if os.path.exists(self.archivo_claves) and os.path.getsize(self.archivo_claves) > 0:
                 with open(self.archivo_claves, 'r', encoding='utf-8') as f:
                     claves = json.load(f)
-                self.logger.info("Claves del sistema cargadas desde archivo")
-                return claves
+                # Verificar que las claves tienen el formato correcto
+                if all(key in claves for key in ['clave_aes', 'salt', 'version', 'algoritmo']):
+                    self.logger.info("Claves del sistema cargadas desde archivo")
+                    return claves
+                else:
+                    self.logger.warning("Archivo de claves incompleto, regenerando...")
+                    raise ValueError("Claves incompletas")
             else:
-                # Generar nuevas claves
+                # Archivo no existe o está vacío
+                self.logger.info("Archivo de claves no existe o está vacío, generando nuevas claves")
                 claves = self.generar_claves_sistema()
                 self.guardar_claves_sistema(claves)
                 self.logger.info("Nuevas claves del sistema generadas y guardadas")
                 return claves
         except Exception as e:
             self.logger.error(f"Error manejando claves del sistema: {e}")
-            # En caso de error, generar claves temporales
-            return self.generar_claves_sistema()
+            # En caso de error, generar claves nuevas y guardar
+            self.logger.info("Regenerando claves del sistema debido a error")
+            claves = self.generar_claves_sistema()
+            try:
+                self.guardar_claves_sistema(claves)
+                self.logger.info("Claves regeneradas y guardadas correctamente")
+            except Exception as save_error:
+                self.logger.error(f"Error guardando claves regeneradas: {save_error}")
+            return claves
     
     def generar_claves_sistema(self) -> Dict[str, str]:
         """
@@ -152,7 +165,7 @@ class CriptografiaManager:
                 'version': '1.0'
             }
             
-            self.logger.debug(f"Mensaje cifrado correctamente (tamaño: {len(mensaje)} chars)")
+            self.logger.info(f"Mensaje cifrado correctamente (tamaño: {len(mensaje)} chars)")
             return resultado
             
         except Exception as e:
@@ -184,7 +197,7 @@ class CriptografiaManager:
             mensaje_bytes = aesgcm.decrypt(nonce, mensaje_cifrado, None)
             mensaje = mensaje_bytes.decode('utf-8')
             
-            self.logger.debug(f"Mensaje descifrado correctamente (tamaño: {len(mensaje)} chars)")
+            self.logger.info(f"Mensaje descifrado correctamente (tamaño: {len(mensaje)} chars)")
             return mensaje
             
         except Exception as e:

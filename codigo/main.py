@@ -77,13 +77,18 @@ class AplicacionQuedadasPerros:
         # Formato simple para errores críticos en consola
         formatter_consola = logging.Formatter('❌ ERROR: %(message)s')
         
-        # 1. Handler para archivo general (INFO y superior)
+        # 1. Handler para archivo general (SOLO INFO y WARNING, NO ERRORES)
+        class InfoWarningFilter(logging.Filter):
+            def filter(self, record):
+                return logging.INFO <= record.levelno < logging.ERROR
+        
         handler_archivo = logging.FileHandler(
             filename=os.path.join(log_dir, f'app_{fecha_hoy}.log'),
             mode='a',
             encoding='utf-8'
         )
         handler_archivo.setLevel(logging.INFO)
+        handler_archivo.addFilter(InfoWarningFilter())
         handler_archivo.setFormatter(formatter_archivo)
         root_logger.addHandler(handler_archivo)
         

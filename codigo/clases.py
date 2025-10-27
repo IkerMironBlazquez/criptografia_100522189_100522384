@@ -344,7 +344,7 @@ class MensajeManager:
                         mensaje.contenido_original = self.crypto_manager.descifrar_desde_almacenamiento(
                             mensaje.contenido_cifrado
                         )
-                        self.logger.debug(f"Mensaje {mensaje.id} descifrado correctamente")
+                        self.logger.info(f"Mensaje {mensaje.id} descifrado correctamente")
                     except Exception as e:
                         self.logger.error(f"Error descifrando mensaje {mensaje.id}: {e}")
                         mensaje.contenido_original = "[ERROR: Mensaje no pudo ser descifrado]"
