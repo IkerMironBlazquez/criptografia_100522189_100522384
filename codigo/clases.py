@@ -10,7 +10,7 @@ import re
 from typing import Dict, List, Optional, Any
 from datetime import datetime
 import logging
-from criptografia import CriptografiaManager
+from criptografia_hibrida import CriptografiaHibrida
 
 
 class Perro:
@@ -242,21 +242,24 @@ class PerroManager:
 
 
 class MensajeManager:
-    """Gestiona los mensajes entre usuarios del sistema con cifrado automático."""
+    """Gestiona los mensajes entre usuarios del sistema con cifrado híbrido RSA + AES."""
     
-    def __init__(self, archivo_mensajes: str = "JSON/mensajes.json"):
+    def __init__(self, archivo_mensajes: str = "JSON/mensajes.json", usuario_manager=None):
         self.archivo_mensajes = archivo_mensajes
         self.mensajes: List[Dict[str, Any]] = []
+        self.usuario_manager = usuario_manager
         
         # Configurar logging
         self.logger = logging.getLogger(__name__)
         
-        # Inicializar gestor criptográfico
+        # Inicializar gestor criptográfico híbrido
         try:
-            self.crypto_manager = CriptografiaManager()
-            self.logger.info("Sistema de cifrado inicializado correctamente")
+            self.crypto_hibrida = CriptografiaHibrida()
+            if usuario_manager:
+                self.crypto_hibrida.set_usuario_manager(usuario_manager)
+            self.logger.info("Sistema de cifrado híbrido RSA + AES inicializado correctamente")
         except Exception as e:
-            self.logger.error(f"Error inicializando sistema de cifrado: {e}")
+            self.logger.error(f"Error inicializando sistema de cifrado híbrido: {e}")
             raise
         
         # Cargar mensajes después de configurar logger
@@ -289,7 +292,7 @@ class MensajeManager:
     
     def enviar_mensaje(self, remitente_id: str, destinatario_id: str, contenido: str) -> Mensaje:
         """
-        Crea un nuevo mensaje y lo cifra automáticamente usando AES-256-GCM.
+        Crea un nuevo mensaje y lo cifra automáticamente usando RSA + AES-256-GCM.
         
         Args:
             remitente_id: ID del usuario que envía
@@ -306,25 +309,28 @@ class MensajeManager:
             # Crear objeto mensaje
             mensaje = Mensaje(id_mensaje, remitente_id, destinatario_id, contenido)
             
-            # CIFRAR EL CONTENIDO automáticamente
-            datos_cifrados = self.crypto_manager.cifrar_mensaje(contenido)
+            # CIFRAR EL CONTENIDO automáticamente con sistema híbrido
+            datos_cifrados = self.crypto_hibrida.cifrar_mensaje(contenido, remitente_id, destinatario_id)
             mensaje.contenido_cifrado = json.dumps(datos_cifrados)
+            
+            # Limpiar contenido original por seguridad
+            mensaje.contenido = "[CIFRADO]"
             
             # Guardar en la lista y persistir
             self.mensajes.append(mensaje.to_dict())
             self.guardar_mensajes()
             
-            self.logger.info(f"Mensaje enviado y cifrado: {id_mensaje} de {remitente_id} a {destinatario_id}")
+            self.logger.info(f"Mensaje enviado y cifrado híbrido: {id_mensaje} de {remitente_id} a {destinatario_id}")
             return mensaje
             
         except Exception as e:
-            self.logger.error(f"Error enviando mensaje cifrado: {e}")
+            self.logger.error(f"Error enviando mensaje cifrado híbrido: {e}")
             raise
     
     def obtener_mensajes_usuario(self, usuario_id: str) -> List[Mensaje]:
         """
         Obtiene todos los mensajes enviados y recibidos por un usuario.
-        Los mensajes se descifran automáticamente para mostrar el contenido.
+        Los mensajes se descifran automáticamente usando el sistema híbrido.
         """
         try:
             # Filtrar mensajes del usuario
@@ -341,13 +347,14 @@ class MensajeManager:
                 # DESCIFRAR EL CONTENIDO automáticamente si está cifrado
                 if mensaje.contenido_cifrado:
                     try:
-                        mensaje.contenido_original = self.crypto_manager.descifrar_desde_almacenamiento(
-                            mensaje.contenido_cifrado
+                        datos_cifrados = json.loads(mensaje.contenido_cifrado)
+                        mensaje.contenido_original = self.crypto_hibrida.descifrar_mensaje(
+                            datos_cifrados, usuario_id
                         )
-                        self.logger.info(f"Mensaje {mensaje.id} descifrado correctamente")
+                        self.logger.info(f"Mensaje {mensaje.id} descifrado correctamente con RSA+AES")
                     except Exception as e:
                         self.logger.error(f"Error descifrando mensaje {mensaje.id}: {e}")
-                        mensaje.contenido_original = "[ERROR: Mensaje no pudo ser descifrado]"
+                        mensaje.contenido_original = "[ERROR: Mensaje no pudo ser descifrado o manipulado]"
                 
                 resultados.append(mensaje)
             
@@ -369,38 +376,43 @@ class MensajeManager:
     
     def verificar_sistema_cifrado(self) -> bool:
         """
-        Verifica que el sistema de cifrado de mensajes funcione correctamente.
+        Verifica que el sistema de cifrado híbrido funcione correctamente.
         
         Returns:
-            True si el cifrado/descifrado funciona correctamente
+            True si el cifrado/descifrado RSA + AES funciona correctamente
         """
         try:
-            # Usar el verificador interno del crypto_manager
-            return self.crypto_manager.verificar_integridad_sistema()
+            # Usar el verificador interno del sistema híbrido
+            resultado = self.crypto_hibrida.verificar_integridad_sistema()
+            return not resultado.get('error', False)
         except Exception as e:
-            self.logger.error(f"Error verificando sistema de cifrado: {e}")
+            self.logger.error(f"Error verificando sistema de cifrado híbrido: {e}")
             return False
     
     def obtener_estadisticas_cifrado(self) -> Dict[str, Any]:
         """
-        Obtiene estadísticas sobre el cifrado de mensajes.
+        Obtiene estadísticas sobre el cifrado híbrido de mensajes.
         
         Returns:
-            Dict con estadísticas del sistema de cifrado
+            Dict con estadísticas del sistema de cifrado RSA + AES
         """
         try:
             total_mensajes = len(self.mensajes)
             mensajes_cifrados = sum(1 for m in self.mensajes if m.get('contenido_cifrado'))
+            
+            # Verificar integridad del sistema
+            verificacion = self.crypto_hibrida.verificar_integridad_sistema()
             
             return {
                 'total_mensajes': total_mensajes,
                 'mensajes_cifrados': mensajes_cifrados,
                 'mensajes_texto_plano': total_mensajes - mensajes_cifrados,
                 'porcentaje_cifrado': (mensajes_cifrados / total_mensajes * 100) if total_mensajes > 0 else 0,
-                'sistema_criptografico': self.crypto_manager.obtener_informacion_sistema()
+                'sistema_criptografico': 'RSA-2048 + AES-256-GCM (Híbrido)',
+                'integridad_sistema': verificacion
             }
         except Exception as e:
-            self.logger.error(f"Error obteniendo estadísticas de cifrado: {e}")
+            self.logger.error(f"Error obteniendo estadísticas de cifrado híbrido: {e}")
             return {'error': str(e)}
     
     def borrar_mensajes_de_usuario(self, usuario_id: str) -> int:

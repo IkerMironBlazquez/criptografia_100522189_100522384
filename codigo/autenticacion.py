@@ -11,6 +11,7 @@ import re
 from typing import Dict, Optional, Any
 from datetime import datetime
 import logging
+from criptografia_hibrida import CriptografiaHibrida
 
 class Usuario:
     """Representa un usuario del sistema con sus datos y métodos asociados."""
@@ -48,6 +49,9 @@ class UsuarioManager:
     def __init__(self, archivo_usuarios: str = "JSON/usuarios.json"):
         self.archivo_usuarios = archivo_usuarios
         self.usuarios: Dict[str, Dict[str, Any]] = {}
+        self.crypto_hibrida = CriptografiaHibrida()
+        self.crypto_hibrida.set_usuario_manager(self)  # Configurar referencia circular
+        self._cache_contraseñas = {}  # Cache temporal de contraseñas para sesión
         
         # Configurar logging para mostrar operaciones criptográficas
         logging.basicConfig(
@@ -185,7 +189,7 @@ class UsuarioManager:
     
     def registrar_usuario(self, nombre_usuario: str, contraseña: str, email: str = "") -> bool:
         """
-        Registra un nuevo usuario con contraseña segura.
+        Registra un nuevo usuario con contraseña segura y claves RSA.
         
         Args:
             nombre_usuario: Nombre único del usuario
@@ -210,6 +214,17 @@ class UsuarioManager:
             id_usuario = secrets.token_hex(8) # Genera string aleatorio de 16 caracteres
             hash_contraseña = self.hash_contraseña(contraseña)
             fecha_registro = datetime.now().isoformat()
+            
+            print("Generando par de claves RSA (esto puede tomar unos segundos)...")
+            
+            # Generar par de claves RSA para el usuario
+            try:
+                claves_rsa = self.crypto_hibrida.generar_par_claves_usuario(id_usuario, contraseña)
+                print("Par de claves RSA generado exitosamente")
+            except Exception as e:
+                print(f"Error generando claves RSA: {e}")
+                return False
+            
             usuario = Usuario(id_usuario=id_usuario,
                             nombre_usuario=nombre_usuario,
                             hash_contraseña=hash_contraseña,
@@ -217,7 +232,8 @@ class UsuarioManager:
                             fecha_registro=fecha_registro)
             self.usuarios[nombre_usuario] = usuario.to_dict()
             self.guardar_usuarios()
-            self.logger.info(f"Usuario registrado exitosamente: {nombre_usuario}")
+            self.logger.info(f"Usuario registrado exitosamente con claves RSA: {nombre_usuario}")
+            print(f"Usuario '{nombre_usuario}' registrado exitosamente con criptografia RSA.")
             return True
         
         #en caso de fallo
@@ -226,7 +242,7 @@ class UsuarioManager:
             return False
     def autenticar_usuario(self, nombre_usuario: str, contraseña: str) -> Optional[Dict[str, Any]]:
         """
-        Autentica un usuario verificando sus credenciales.
+        Autentica un usuario verificando sus credenciales y cacheando la contraseña.
         
         Args:
             nombre_usuario: Nombre del usuario
@@ -245,6 +261,11 @@ class UsuarioManager:
         hash_extraido = usuario_autenticar["hash_contraseña"]
 
         if self.verificar_contraseña(contraseña, hash_extraido):
+            # Cachear contraseña para uso en criptografía (temporal para sesión)
+            usuario_id = usuario_autenticar.get('id')
+            if usuario_id:
+                self._cache_contraseñas[usuario_id] = contraseña
+            
             self.logger.info(f"Autenticación exitosa: {nombre_usuario}")
             return usuario_autenticar
         
@@ -276,9 +297,9 @@ class UsuarioManager:
             self.guardar_usuarios()
             self.logger.info(f"Usuario {nombre_usuario} eliminado (id={usuario_id})")
         except Exception as e:
-            self.logger.error(f"Error eliminando usuario {nombre_usuario}: {e}")
+            logging.error(f"Error eliminando usuario {nombre_usuario}: {e}")
             return False
-
+    
         # Borrar perros asociados (si se proporciona el manager)
         if perro_manager is not None:
             try:
@@ -302,3 +323,12 @@ class UsuarioManager:
                 self.logger.warning(f"No se pudieron borrar mensajes de {usuario_id}: {e}")
 
         return True
+    
+    def obtener_contraseña_usuario(self, usuario_id: str) -> Optional[str]:
+        """Obtiene la contraseña cacheada de un usuario para operaciones criptográficas."""
+        return self._cache_contraseñas.get(usuario_id)
+    
+    def limpiar_cache_contraseñas(self):
+        """Limpia el cache de contraseñas al cerrar sesión."""
+        self._cache_contraseñas.clear()
+        logging.info("Cache de contraseñas limpiado")

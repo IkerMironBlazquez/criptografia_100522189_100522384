@@ -1,11 +1,17 @@
 """
-Aplicación de Mensajería para Quedadas de Perros
+Aplicación de Mensajería Híbrida para Quedadas de Perros
 Práctica de Criptografía y Seguridad Informática
 
-Implementa los apartados 1, 2 y 3 de la práctica:
-1. Registro y autenticación de usuarios (bcrypt)
-2. Cifrado/descifrado simétrico (AES-256-CBC)
-3. Generación/verificación de etiquetas de autenticación (HMAC-SHA256)
+Implementa los apartados 1, 2 y 3 de la práctica con arquitectura realista:
+1. Registro y autenticación de usuarios (bcrypt) + Generación de claves RSA
+2. Cifrado híbrido: RSA-2048 para intercambio de claves + AES-256-GCM para mensajes
+3. Autenticación integrada: GCM para integridad de mensajes + RSA para integridad de claves
+
+Arquitectura:
+- Cada usuario tiene par de claves RSA (pública/privada)
+- Cada conversación usa clave AES única intercambiada vía RSA
+- Los mensajes se cifran con AES-256-GCM (sin límite de tamaño)
+- La autenticación es automática (GCM incluye MAC)
 """
 
 import os
@@ -31,7 +37,8 @@ class AplicacionQuedadasPerros:
         # Inicializar gestores
         self.usuario_manager = UsuarioManager()
         self.perro_manager = PerroManager()
-        self.mensaje_manager = MensajeManager()
+        # MensajeManager necesita referencia al usuario_manager para criptografía híbrida
+        self.mensaje_manager = MensajeManager(usuario_manager=self.usuario_manager)
         
         # Usuario actualmente logueado
         self.usuario_actual = None
@@ -117,21 +124,22 @@ class AplicacionQuedadasPerros:
     
     def mostrar_banner(self):
         """Muestra el banner de la aplicación."""
-        print("\n" + "=" * 60)
-        print("     🐶 QUEDADAS DE PERROS - MENSAJERÍA SEGURA 🐶")
-        print("=" * 60)
-        print("Práctica de Criptografía y Seguridad Informática")
-        print("✓ Apartado 1: Autenticación segura (bcrypt)")
-        print("✓ Apartado 2: Cifrado simétrico (AES-256-GCM)")
-        print("✓ Apartado 3: Autenticación integrada (GCM)")
+        print("\n" + "=" * 70)
+        print("     QUEDADAS DE PERROS - MENSAJERIA HIBRIDA SEGURA")
+        print("=" * 70)
+        print("Practica de Criptografia y Seguridad Informatica")
+        print("* Apartado 1: Autenticacion segura (bcrypt)")
+        print("* Apartado 2: Cifrado hibrido RSA-2048 + AES-256-GCM")
+        print("* Apartado 3: Autenticacion integrada (GCM + RSA)")
+        print("* Arquitectura: Intercambio RSA -> Cifrado AES -> Autenticacion GCM")
         
         # Verificar que el sistema de cifrado funciona
         if self.mensaje_manager.verificar_sistema_cifrado():
-            print("🔐 Sistema de cifrado: OPERATIVO")
+            print("* Sistema de cifrado hibrido: OPERATIVO")
         else:
-            print("⚠️  Sistema de cifrado: ERROR")
+            print("* Sistema de cifrado hibrido: ERROR")
         
-        print("=" * 60 + "\n")
+        print("=" * 70 + "\n")
     def mostrar_menu_principal(self):
         """Muestra el menú principal de la aplicación."""
         print("\n🏠 MENÚ PRINCIPAL")
