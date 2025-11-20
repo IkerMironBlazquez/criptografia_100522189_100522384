@@ -313,8 +313,8 @@ class MensajeManager:
             datos_cifrados = self.crypto_hibrida.cifrar_mensaje(contenido, remitente_id, destinatario_id)
             mensaje.contenido_cifrado = json.dumps(datos_cifrados)
             
-            # Limpiar contenido original por seguridad
-            mensaje.contenido = "[CIFRADO]"
+            # Limpiar contenido original por seguridad - NO almacenar texto plano
+            mensaje.contenido_original = "[CIFRADO]"
             
             # Guardar en la lista y persistir
             self.mensajes.append(mensaje.to_dict())
@@ -354,7 +354,7 @@ class MensajeManager:
                         self.logger.info(f"Mensaje {mensaje.id} descifrado correctamente con RSA+AES")
                     except Exception as e:
                         self.logger.error(f"Error descifrando mensaje {mensaje.id}: {e}")
-                        mensaje.contenido_original = "[ERROR: Mensaje no pudo ser descifrado o manipulado]"
+                        mensaje.contenido_original = "[ERROR: Mensaje no pudo ser descifrado]"
                 
                 resultados.append(mensaje)
             

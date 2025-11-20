@@ -145,7 +145,7 @@ class UsuarioManager:
             # Convertimos la contraseña a bytes
             contraseña_bytes = contraseña.encode("utf-8")
 
-            # Generamos un salt aleatorio y único para la contraseña con gensalt() y hacemos el hash y lo convertimos a string para almaacenarlo en JSON
+            # Generamos un salt aleatorio y único para la contraseña con gensalt(), hacemos el hash y lo convertimos a string para almaacenarlo en JSON
             hash_bytes = bcrypt.hashpw(contraseña_bytes, bcrypt.gensalt())
             hash_string = hash_bytes.decode("utf-8")
 
@@ -327,6 +327,13 @@ class UsuarioManager:
     def obtener_contraseña_usuario(self, usuario_id: str) -> Optional[str]:
         """Obtiene la contraseña cacheada de un usuario para operaciones criptográficas."""
         return self._cache_contraseñas.get(usuario_id)
+    
+    def obtener_usuario_por_id(self, usuario_id: str) -> Optional[Usuario]:
+        """Obtiene un objeto Usuario por su ID."""
+        for usuario_data in self.usuarios.values():
+            if usuario_data.get('id') == usuario_id:
+                return Usuario.from_dict(usuario_data)
+        return None
     
     def limpiar_cache_contraseñas(self):
         """Limpia el cache de contraseñas al cerrar sesión."""

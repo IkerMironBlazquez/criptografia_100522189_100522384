@@ -168,6 +168,50 @@ class CriptografiaHibrida:
     # GESTIÓN DE CLAVES AES DE SESIÓN
     # ===============================
     
+    def obtener_clave_sesion_para_usuario(self, remitente_id: str, destinatario_id: str, usuario_id: str) -> bytes:
+        """
+        Obtiene la clave AES de sesión para un usuario específico (remitente o destinatario).
+        
+        Args:
+            remitente_id: ID del usuario que envía
+            destinatario_id: ID del usuario que recibe  
+            usuario_id: ID del usuario que quiere descifrar
+            
+        Returns:
+            Clave AES de 32 bytes para la sesión
+        """
+        try:
+            sesion_id = self._get_id_sesion(remitente_id, destinatario_id)
+            archivo_sesion = os.path.join(self.directorio_sesiones, f"{sesion_id}.json")
+            
+            if not os.path.exists(archivo_sesion):
+                raise ValueError(f"No existe sesión entre {remitente_id} y {destinatario_id}")
+            
+            with open(archivo_sesion, 'r') as f:
+                datos_sesion = json.load(f)
+            
+            # Buscar la clave cifrada para este usuario específico
+            clave_aes_cifrada = datos_sesion.get(f"clave_para_{usuario_id}")
+            if not clave_aes_cifrada:
+                raise ValueError(f"No hay clave disponible para usuario {usuario_id}")
+            
+            # Descifrar la clave AES usando la clave privada RSA del usuario
+            clave_privada = self.cargar_clave_privada(usuario_id, self._get_password_cache(usuario_id))
+            if not clave_privada:
+                raise ValueError(f"No se pudo cargar clave privada para usuario {usuario_id}")
+            
+            clave_aes = self._descifrar_clave_aes_con_rsa(
+                base64.b64decode(clave_aes_cifrada), 
+                clave_privada
+            )
+            
+            logger.info(f"Clave de sesión obtenida para usuario {usuario_id}")
+            return clave_aes
+            
+        except Exception as e:
+            logger.error(f"Error obteniendo clave de sesión para {usuario_id}: {e}")
+            raise
+    
     def _get_id_sesion(self, usuario1_id: str, usuario2_id: str) -> str:
         """
         Genera ID único para una sesión entre dos usuarios.
@@ -329,27 +373,44 @@ class CriptografiaHibrida:
             if usuario_id not in [remitente_id, destinatario_id]:
                 raise ValueError(f"Usuario {usuario_id} no autorizado para descifrar este mensaje")
             
-            # Obtener clave AES de la sesión
-            if usuario_id == destinatario_id:
-                clave_aes = self.obtener_o_generar_clave_sesion(remitente_id, destinatario_id)
-            else:  # usuario_id == remitente_id
-                clave_aes = self.obtener_o_generar_clave_sesion(usuario_id, destinatario_id)
+            # Obtener clave AES de la sesión (intentar con nuevo método primero)
+            clave_aes = None
+            try:
+                clave_aes = self.obtener_clave_sesion_para_usuario(remitente_id, destinatario_id, usuario_id)
+            except Exception as e1:
+                # Si falla, intentar con método legacy (para mensajes antiguos)
+                try:
+                    if usuario_id == destinatario_id:
+                        clave_aes = self.obtener_o_generar_clave_sesion(remitente_id, destinatario_id)
+                    else:  # usuario_id == remitente_id
+                        clave_aes = self.obtener_o_generar_clave_sesion(usuario_id, destinatario_id)
+                except Exception as e2:
+                    raise ValueError(f"Error obteniendo clave de sesión: {e1}")
             
             # Decodificar datos
-            mensaje_cifrado = base64.b64decode(datos_cifrados['mensaje_cifrado'])
-            nonce = base64.b64decode(datos_cifrados['nonce'])
+            try:
+                mensaje_cifrado = base64.b64decode(datos_cifrados['mensaje_cifrado'])
+                nonce = base64.b64decode(datos_cifrados['nonce'])
+            except Exception as e:
+                raise ValueError(f"Error decodificando datos base64: {e}")
             
             # Descifrar con AES-GCM
-            aesgcm = AESGCM(clave_aes)
-            mensaje_bytes = aesgcm.decrypt(nonce, mensaje_cifrado, None)
-            mensaje = mensaje_bytes.decode('utf-8')
+            try:
+                aesgcm = AESGCM(clave_aes)
+                mensaje_bytes = aesgcm.decrypt(nonce, mensaje_cifrado, None)
+                mensaje = mensaje_bytes.decode('utf-8')
+            except Exception as e:
+                raise ValueError(f"Error en descifrado AES-GCM: {e}")
             
             logger.info(f"Mensaje descifrado exitosamente para usuario {usuario_id}")
             return mensaje
             
+        except ValueError as ve:
+            logger.error(f"Error descifrando mensaje para {usuario_id}: {ve}")
+            raise ve
         except Exception as e:
-            logger.error(f"Error descifrando mensaje para {usuario_id}: {e}")
-            raise ValueError("Error de descifrado o mensaje manipulado")
+            logger.error(f"Error inesperado descifrando mensaje para {usuario_id}: {e}")
+            raise ValueError(f"Error de descifrado: {str(e)}")
     
     # ================
     # UTILIDADES
@@ -364,7 +425,10 @@ class CriptografiaHibrida:
         Obtiene la contraseña del usuario desde caché temporal.
         """
         if hasattr(self, 'usuario_manager') and self.usuario_manager:
-            return self.usuario_manager.obtener_contraseña_usuario(usuario_id)
+            contraseña = self.usuario_manager.obtener_contraseña_usuario(usuario_id)
+            if not contraseña:
+                raise ValueError(f"Contraseña no encontrada en cache para usuario {usuario_id}")
+            return contraseña
         else:
             raise ValueError("Usuario manager no configurado para acceder al cache de contraseñas")
     

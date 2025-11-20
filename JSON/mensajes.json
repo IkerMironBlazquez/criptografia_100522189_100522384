@@ -1,1 +1,11 @@
-[]
+[
+    {
+        "id": "75f637b755d95de8",
+        "remitente_id": "1fbb6933daf00f21",
+        "destinatario_id": "9208b42e0963953c",
+        "contenido_original": "[CIFRADO]",
+        "contenido_cifrado": "{\"mensaje_cifrado\": \"WvPh6U2qy8bFEtWtPuXKe5WLMyCEBG9CC+pPRz3oMrBuGNN11hbK+mEjnOdG4N1R2KwHIa+u5ivnhE/7viPr6SfAw5gAG6Ux1la/Fe/wxqBDPMRuRd7R7Wx0xlcJVQwavhbqhzfUgVrKpvz1Kj1fchkqHzGHIMsLsSOTrlZETb0R0wgvj5V5YUhD7Svl3/rYrQenGLsuSVrg9V+0pdSqkBU0ZDzRWkYeiEXWlV/UtoOodxhnsW/UDaBRug/XAOunpuIa6TAH0CLhJml8UzZ+6XlkVGuZ4Tz9pZYrVsJL/+m9CfjfFiGcQsg=\", \"nonce\": \"kth5bJOeFXCgpBAZ\", \"algoritmo\": \"AES-256-GCM\", \"remitente_id\": \"1fbb6933daf00f21\", \"destinatario_id\": \"9208b42e0963953c\", \"fecha_cifrado\": \"2025-11-20T01:33:14.539885\", \"version\": \"2.0\"}",
+        "fecha_envio": "2025-11-20T01:33:14.506851",
+        "leido": true
+    }
+]

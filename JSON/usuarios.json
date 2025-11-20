@@ -1,16 +1,16 @@
 {
-    "juan": {
-        "id": "78dff0e6e03c5cbe",
-        "nombre_usuario": "juan",
-        "hash_contraseña": "$2b$12$UhqTY3AieqJ7Kbmiekjhp.1dFqcGypGrHrgoj0WHp2tXmWwSMnYR2",
-        "email": "juan@example.com",
-        "fecha_registro": "2025-10-22T20:23:16.176642"
+    "Hugo": {
+        "id": "1fbb6933daf00f21",
+        "nombre_usuario": "Hugo",
+        "hash_contraseña": "$2b$12$RWZEg7Eml7UY0LomiL0yy.0y/j0bqmCfk8O3kfABXVN2SKjjuTnsm",
+        "email": "",
+        "fecha_registro": "2025-11-20T01:23:01.881259"
     },
-    "pedro": {
-        "id": "3bb9eb394741e30c",
-        "nombre_usuario": "pedro",
-        "hash_contraseña": "$2b$12$dcl3Mv2dfO5oGYLbI2kYSunUJ7k.IWQ7tSqgfDwGn0cpAftGV3qMG",
-        "email": "pedro@example.com",
-        "fecha_registro": "2025-10-22T20:23:16.397781"
+    "Iker": {
+        "id": "9208b42e0963953c",
+        "nombre_usuario": "Iker",
+        "hash_contraseña": "$2b$12$egPQvD9BaH4SgBAx5qRzbOz66gEbgVRoVLLkTtARBDW4z.xWIaJ..",
+        "email": "",
+        "fecha_registro": "2025-11-20T01:23:22.362318"
     }
 }

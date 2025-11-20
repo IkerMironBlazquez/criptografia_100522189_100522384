@@ -125,34 +125,25 @@ class AplicacionQuedadasPerros:
     def mostrar_banner(self):
         """Muestra el banner de la aplicación."""
         print("\n" + "=" * 70)
-        print("     QUEDADAS DE PERROS - MENSAJERIA HIBRIDA SEGURA")
+        print("     QUEDADAS DE PERROS")
         print("=" * 70)
-        print("Practica de Criptografia y Seguridad Informatica")
-        print("* Apartado 1: Autenticacion segura (bcrypt)")
-        print("* Apartado 2: Cifrado hibrido RSA-2048 + AES-256-GCM")
-        print("* Apartado 3: Autenticacion integrada (GCM + RSA)")
-        print("* Arquitectura: Intercambio RSA -> Cifrado AES -> Autenticacion GCM")
         
         # Verificar que el sistema de cifrado funciona
-        if self.mensaje_manager.verificar_sistema_cifrado():
-            print("* Sistema de cifrado hibrido: OPERATIVO")
-        else:
-            print("* Sistema de cifrado hibrido: ERROR")
-        
-        print("=" * 70 + "\n")
+        if not self.mensaje_manager.verificar_sistema_cifrado():
+            raise RuntimeError("Error crítico en la inicialización del sistema")
+    
     def mostrar_menu_principal(self):
         """Muestra el menú principal de la aplicación."""
-        print("\n🏠 MENÚ PRINCIPAL")
+        print("\nMENÚ PRINCIPAL")
         print("1. Registrar nuevo usuario")
         print("2. Iniciar sesión")
-        print("3. Ver información del sistema")
-        print("4. Salir")
+        print("3. Salir")
         print("-" * 30)
     
     def mostrar_menu_usuario(self):
         """Muestra el menú para usuario logueado."""
         nombre_usuario = self.usuario_actual.get('nombre_usuario', 'Usuario') if self.usuario_actual else 'Usuario'
-        print(f"\n👤 Bienvenido, {nombre_usuario}!")
+        print(f"\nBienvenido, {nombre_usuario}!")
         print("1. Registrar mi perro")
         print("2. Ver mis perros")
         print("3. Explorar perros y contactar propietarios")
@@ -165,39 +156,38 @@ class AplicacionQuedadasPerros:
     
     def registrar_usuario(self):
         """Registra un nuevo usuario en el sistema."""
-        print("\n📋 REGISTRO DE USUARIO")
+        print("\nREGISTRO DE USUARIO")
         print("Criterios de contraseña segura:")
         print("- Al menos 8 caracteres")
         print("- Mayúsculas y minúsculas")
         print("- Números y símbolos")
         print()
         
-        nombre_usuario = input("📝 Nombre de usuario: ").strip()
+        nombre_usuario = input("Nombre de usuario: ").strip()
         if not nombre_usuario:
-            print("❌ Error: El nombre de usuario no puede estar vacío")
+            print("Error: El nombre de usuario no puede estar vacío")
             return
         
-        contraseña = input("🔒 Contraseña: ").strip()
-        email = input("📧 Email (opcional): ").strip()
+        contraseña = input("Contraseña: ").strip()
+        email = input("Email (opcional): ").strip()
         
         try:
             # Intentar registrar usuario
             if self.usuario_manager.registrar_usuario(nombre_usuario, contraseña, email):
-                print(f"✓ ¡Usuario '{nombre_usuario}' registrado exitosamente!")
+                print(f"¡Usuario '{nombre_usuario}' registrado exitosamente!")
                 print("Ya puedes iniciar sesión con tus credenciales.")
             else:
                 print("❌ Error: No se pudo registrar el usuario.")
                 print("Verifica que el nombre no exista y la contraseña sea robusta.")
         except Exception as e:
-            print(f"❌ Error en el sistema de autenticación: {e}")
-            print("💡 Funcionalidad no implementada completamente aún")
+            print(f"Error en el sistema de autenticación: {e}")
     
     def iniciar_sesion(self):
         """Autentica un usuario en el sistema."""
-        print("\n🔑 INICIAR SESIÓN")
+        print("\nINICIAR SESIÓN")
         
-        nombre_usuario = input("📝 Usuario: ").strip()
-        contraseña = input("🔒 Contraseña: ").strip()
+        nombre_usuario = input("Nombre de Usuario: ").strip()
+        contraseña = input("Contraseña: ").strip()
         
         try:
             # Intentar autenticación
@@ -205,128 +195,124 @@ class AplicacionQuedadasPerros:
             
             if usuario:
                 self.usuario_actual = usuario
-                print(f"✓ ¡Bienvenido, {usuario['nombre_usuario']}!")
+                print(f"¡Bienvenido, {usuario['nombre_usuario']}!")
                 return True
             else:
-                print("❌ Error: Credenciales incorrectas")
+                print("Error: Credenciales incorrectas")
                 return False
         except Exception as e:
-            print(f"❌ Error en el sistema de autenticación: {e}")
-            print("💡 Funcionalidad no implementada completamente aún")
+            print(f"Error en el sistema de autenticación: {e}")
             return False
     
     def registrar_perro(self):
         """Registra un nuevo perro para el usuario actual."""
         if not self.usuario_actual:
-            print("❌ Error: Debes iniciar sesión primero")
+            print("Error: Debes iniciar sesión primero")
             return
             
-        print("\n🐕 REGISTRAR PERRO")
+        print("\nREGISTRAR PERRO")
         
-        nombre = input("📝 Nombre del perro: ").strip()
+        nombre = input("Nombre del perro: ").strip()
         if not nombre:
-            print("❌ Error: El nombre no puede estar vacío")
+            print("Error: El nombre no puede estar vacío")
             return
         
-        identificador = input("🔖 Número de microchip/pedigree: ").strip()
+        identificador = input("Número de microchip/pedigree: ").strip()
         if not identificador:
-            print("❌ Error: El identificador es obligatorio")
+            print("Error: El identificador es obligatorio")
             return
         
-        print("\n📷 Descripción del perro:")
-        descripcion = input("📝 Descripción: ").strip()
+        print("\nDescripción del perro:")
+        descripcion = input("Descripción: ").strip()
         
         try:
             # Registrar perro
             perro = self.perro_manager.registrar_perro(self.usuario_actual['id'], nombre, identificador, descripcion)
             
-            print(f"✓ ¡Perro '{nombre}' registrado exitosamente!")
+            print(f"¡Perro '{nombre}' registrado exitosamente!")
             print(f"ID del perro: {perro.id}")
         except Exception as e:
-            print(f"❌ Error en el sistema de perros: {e}")
-            print("💡 Funcionalidad no implementada completamente aún")
+            print(f"Error en el sistema de perros: {e}")
     
     def ver_mis_perros(self):
         """Muestra los perros del usuario actual."""
         if not self.usuario_actual:
-            print("❌ Error: Debes iniciar sesión primero")
+            print("Error: Debes iniciar sesión primero")
             return
             
-        print("\n🐕 MIS PERROS")
+        print("\nMIS PERROS")
         
         try:
             perros = self.perro_manager.obtener_perros_usuario(self.usuario_actual['id'])
             
             if not perros:
-                print("🚫 No tienes perros registrados aún.")
+                print("No tienes perros registrados aún.")
                 return
             
             for i, perro in enumerate(perros, 1):
-                print(f"\n{i}. 🐶 {perro.nombre}")
+                print(f"\n{i}.  {perro.nombre}")
                 print(f"   ID: {perro.id}")
                 print(f"   Identificador: {perro.identificador_oficial}")
                 print(f"   Público: {'Sí' if perro.publico else 'No'}")
                 if perro.descripcion:
                     print(f"   Descripción: {perro.descripcion}")
         except Exception as e:
-            print(f"❌ Error en el sistema de perros: {e}")
-            print("💡 Funcionalidad no implementada completamente aún")
+            print(f"Error en el sistema de perros: {e}")
 
     def eliminar_perro(self):
         """Interfaz para eliminar un perro del usuario actual."""
         if not self.usuario_actual:
-            print("❌ Error: Debes iniciar sesión primero")
+            print("Error: Debes iniciar sesión primero")
             return
 
         try:
             perros = self.perro_manager.obtener_perros_usuario(self.usuario_actual['id'])
 
             if not perros:
-                print("🚫 No tienes perros registrados para eliminar.")
+                print("No tienes perros registrados para eliminar.")
                 return
 
-            print("\n🐕 ELIMINAR PERRO - Tus perros:")
+            print("\nELIMINAR PERRO - Tus perros:")
             for i, perro in enumerate(perros, 1):
                 print(f"{i}. {perro.nombre} - ID: {perro.id}")
 
-            perro_id = input("🗑️ Ingresa el ID del perro que quieres eliminar: ").strip()
+            perro_id = input("Ingresa el ID del perro que quieres eliminar: ").strip()
             if not perro_id:
-                print("❌ No se proporcionó ID. Operación cancelada.")
+                print("No se proporcionó ID. Operación cancelada.")
                 return
 
             # Comprobación extra: obtener el perro y validar propietario
             info = self.perro_manager.buscar_perro_por_id(perro_id)
             if not info:
-                print("❌ Perro no encontrado con ese ID.")
+                print("Perro no encontrado con ese ID.")
                 return
 
             if info.get('propietario_id') != self.usuario_actual['id']:
-                print("❌ No tienes permiso para eliminar ese perro (no eres el propietario).")
+                print("No tienes permiso para eliminar ese perro (no eres el propietario).")
                 return
 
             # Llamada al manager para borrar el perro (ya sabemos que somos propietarios)
             borrado = self.perro_manager.borrar_perro(self.usuario_actual['id'], perro_id)
 
+            perro_nombre = info['perro'].nombre
             if borrado:
-                print(f"✓ Perro {perro_id} eliminado correctamente.")
+                print(f"Perro {perro_nombre} eliminado correctamente.")
             else:
-                print(f"❌ No se pudo eliminar el perro ({perro_id}).")
+                print(f"No se pudo eliminar el perro ({perro_nombre}).")
 
         except Exception as e:
-            print(f"❌ Error eliminando perro: {e}")
+            print(f"Error eliminando perro: {e}")
             self.logger.error(f"Error en eliminar_perro: {e}", exc_info=True)
-
-    # método antiguo `borrar_perro_ui` eliminado; usar `eliminar_perro` abajo
     
     def explorar_perros_publicos(self):
         """Muestra perros públicos de otros usuarios."""
-        print("\n🌍 PERROS PÚBLICOS")
+        print("\nPERROS PÚBLICOS")
         
         try:
             perros_publicos = self.perro_manager.obtener_perros_publicos()
             
             if not perros_publicos:
-                print("🚫 No hay perros públicos disponibles.")
+                print("No hay perros públicos disponibles.")
                 return
             
             print(f"Encontrados {len(perros_publicos)} perros disponibles para quedadas:\n")
@@ -339,7 +325,7 @@ class AplicacionQuedadasPerros:
                 if self.usuario_actual and propietario_id == self.usuario_actual['id']:
                     continue
                 
-                print(f"{i}. 🐶 {perro.nombre}")
+                print(f"{i}.  {perro.nombre}")
                 print(f"   ID del perro: {perro.id}")
                 # Intentar resolver el nombre de usuario a partir del id del propietario
                 owner_name = None
@@ -354,18 +340,17 @@ class AplicacionQuedadasPerros:
                 print()
             
             # Opción para enviar mensaje
-            perro_id = input("💬 ¿Te interesa alguno? Ingresa el ID del perro para contactar: ").strip()
+            perro_id = input("¿Te interesa alguno? Ingresa el ID del perro para contactar: ").strip()
             if perro_id:
                 self.enviar_mensaje_a_propietario(perro_id)
                 
         except Exception as e:
-            print(f"❌ Error en el sistema de perros: {e}")
-            print("💡 Funcionalidad no implementada completamente aún")
+            print(f"Error en el sistema de perros: {e}")
     
     def enviar_mensaje_a_propietario(self, perro_id: str):
         """Envía un mensaje al propietario de un perro específico."""
         if not self.usuario_actual:
-            print("❌ Error: Debes iniciar sesión primero")
+            print("Error: Debes iniciar sesión primero")
             return
             
         try:
@@ -373,7 +358,7 @@ class AplicacionQuedadasPerros:
             info_perro = self.perro_manager.buscar_perro_por_id(perro_id)
             
             if not info_perro:
-                print("❌ Error: Perro no encontrado")
+                print("Error: Perro no encontrado")
                 return
             
             perro = info_perro['perro']
@@ -381,14 +366,14 @@ class AplicacionQuedadasPerros:
             
             # No enviar mensaje a uno mismo
             if propietario_id == self.usuario_actual['id']:
-                print("❌ No puedes enviarte un mensaje a ti mismo")
+                print("No puedes enviarte un mensaje a ti mismo")
                 return
             
-            print(f"\n💬 Contactando al propietario de {perro.nombre}...")
+            print(f"\nContactando al propietario de {perro.nombre}...")
             
-            mensaje = input("📝 Escribe tu mensaje sobre la quedada: ").strip()
+            mensaje = input("Escribe tu mensaje sobre la quedada: ").strip()
             if not mensaje:
-                print("❌ El mensaje no puede estar vacío")
+                print("El mensaje no puede estar vacío")
                 return
             
             # Crear el mensaje
@@ -397,29 +382,23 @@ class AplicacionQuedadasPerros:
                 propietario_id,
                 mensaje
             )
-            
-            # Mensaje creado, cifrado y persistido por el manager
-            print(f"✅ ¡Mensaje enviado y cifrado con AES-256-GCM!")
-            print(f"📨 ID del mensaje: {mensaje_obj.id}")
-            print(f"🔐 Contenido cifrado automáticamente")
                 
         except Exception as e:
-            print(f"❌ Error en el sistema de mensajes: {e}")
-            print("💡 Funcionalidad no implementada completamente aún")
+            print(f"Error en el sistema de mensajes: {e}")
     
     def ver_mensajes(self):
         """Muestra los mensajes del usuario actual."""
         if not self.usuario_actual:
-            print("❌ Error: Debes iniciar sesión primero")
+            print("Error: Debes iniciar sesión primero")
             return
             
-        print("\n📨 MIS MENSAJES")
+        print("\nMIS MENSAJES")
         
         try:
             mensajes = self.mensaje_manager.obtener_mensajes_usuario(self.usuario_actual['id'])
             
             if not mensajes:
-                print("🚫 No tienes mensajes")
+                print("No tienes mensajes")
                 return
             
             print(f"Total de mensajes: {len(mensajes)}\n")
@@ -427,42 +406,51 @@ class AplicacionQuedadasPerros:
             for i, mensaje in enumerate(mensajes, 1):
                 # Determinar dirección del mensaje
                 if mensaje.remitente_id == self.usuario_actual['id']:
-                    direccion = "📤 ENVIADO"
-                    otro_usuario = mensaje.destinatario_id
+                    direccion = "ENVIADO"
+                    otro_usuario_id = mensaje.destinatario_id
                 else:
-                    direccion = "📥 RECIBIDO"
-                    otro_usuario = mensaje.remitente_id
+                    direccion = "RECIBIDO"
+                    otro_usuario_id = mensaje.remitente_id
                 
-                print(f"{i}. {direccion} - {otro_usuario[:12]}...")
+                # Obtener el nombre de usuario usando el método existente
+                usuario_obj = self.usuario_manager.obtener_usuario_por_id(otro_usuario_id)
+                nombre_otro_usuario = usuario_obj.nombre_usuario if usuario_obj else otro_usuario_id[:8] + "..."
+                
+                print(f"{i}. {direccion} - {nombre_otro_usuario}")
                 print(f"   Fecha: {mensaje.fecha_envio[:19] if hasattr(mensaje, 'fecha_envio') else 'N/A'}")
                 print(f"   Leído: {'Sí' if mensaje.leido else 'No'}")
                 
                 # Mostrar mensaje descifrado automáticamente
                 contenido = getattr(mensaje, 'contenido_original', 'Contenido no disponible')
                 
-                # Indicar si el mensaje estaba cifrado
-                if hasattr(mensaje, 'contenido_cifrado') and mensaje.contenido_cifrado:
-                    print(f"   � Mensaje: {contenido[:100]}{'...' if len(contenido) > 100 else ''}")
-                    print("   🔐 Estado: Cifrado AES-256-GCM")
-                else:
-                    print(f"   � Mensaje: {contenido[:100]}{'...' if len(contenido) > 100 else ''}")
-                    print("   📝 Estado: Texto plano")
+                # Mostrar el mensaje
+                print(f"   Mensaje:")
+                # Mostrar el mensaje por lineas
+                for linea in [contenido[i:i+80] for i in range(0, len(contenido), 80)]:
+                    print(f"      {linea}")
+                
+                # Marcar como leido el mensaje si lo vemos
+                if not mensaje.leido and mensaje.destinatario_id == self.usuario_actual['id']:
+                    try:
+                        if self.mensaje_manager.marcar_como_leido(mensaje.id, self.usuario_actual['id']):
+                            mensaje.leido = True  # Actualizar también el objeto en memoria
+                    except Exception as e:
+                        self.logger.error(f"Error marcando mensaje {mensaje.id} como leído: {e}")
                 
                 print()
                 
         except Exception as e:
-            print(f"❌ Error cargando mensajes: {e}")
-            print("💡 Verifica que el sistema de cifrado esté funcionando correctamente")
+            print(f"Error cargando mensajes: {e}")
     
     def borrar_cuenta(self):
         """Permite al usuario borrar su cuenta y todos sus datos asociados."""
         if not self.usuario_actual:
-            print("❌ Error: No hay usuario autenticado")
+            print("Error: No hay usuario autenticado")
             return
         
         nombre_usuario = self.usuario_actual.get('nombre_usuario')
-        print(f"\n🗑️  BORRAR CUENTA: {nombre_usuario}")
-        print("⚠️  ADVERTENCIA: Esta acción eliminará permanentemente:")
+        print(f"\n  BORRAR CUENTA: {nombre_usuario}")
+        print("   ADVERTENCIA: Esta acción eliminará permanentemente:")
         print("   • Tu cuenta de usuario")
         print("   • Todos tus perros registrados")
         print("   • Todos tus mensajes")
@@ -472,24 +460,24 @@ class AplicacionQuedadasPerros:
         # Confirmación 1
         confirmar1 = input("¿Estás seguro de que quieres borrar tu cuenta? (escribe 'BORRAR'): ").strip()
         if confirmar1 != "BORRAR":
-            print("❌ Cancelado. Tu cuenta está segura.")
+            print("Cancelado. Tu cuenta está segura.")
             return
         
         # Confirmación 2 - verificar contraseña
-        print("\n🔒 Por seguridad, confirma tu contraseña:")
+        print("\nPor seguridad, confirma tu contraseña:")
         contraseña = input("Contraseña actual: ").strip()
         
         if not self.usuario_manager.autenticar_usuario(nombre_usuario, contraseña):
-            print("❌ Contraseña incorrecta. Operación cancelada.")
+            print("Contraseña incorrecta. Operación cancelada.")
             return
         
         # Confirmación 3 - última oportunidad
-        print(f"\n⚠️  ÚLTIMA CONFIRMACIÓN:")
+        print(f"\n  ÚLTIMA CONFIRMACIÓN:")
         print(f"Se va a eliminar PERMANENTEMENTE la cuenta '{nombre_usuario}' y todos sus datos.")
         confirmar_final = input("Escribe 'CONFIRMO' para proceder: ").strip()
         
         if confirmar_final != "CONFIRMO":
-            print("❌ Operación cancelada. Tu cuenta está segura.")
+            print("Operación cancelada. Tu cuenta está segura.")
             return
         
         try:
@@ -501,8 +489,8 @@ class AplicacionQuedadasPerros:
             )
             
             if exito:
-                print("✅ Cuenta eliminada exitosamente.")
-                print("👋 Gracias por usar nuestra aplicación.")
+                print("Cuenta eliminada exitosamente.")
+                print("Gracias por usar nuestra aplicación.")
                 
                 # Cerrar sesión automáticamente
                 self.usuario_actual = None
@@ -510,63 +498,13 @@ class AplicacionQuedadasPerros:
                 print("\nPresiona Enter para volver al menú principal...")
                 input()
             else:
-                print("❌ Error: No se pudo eliminar la cuenta.")
-                print("💡 Contacta al administrador del sistema.")
+                print("Error: No se pudo eliminar la cuenta.")
                 
         except Exception as e:
-            print(f"❌ Error eliminando cuenta: {e}")
+            print(f"Error eliminando cuenta: {e}")
             self.logger.error(f"Error eliminando cuenta de {nombre_usuario}: {e}")
     
-    def mostrar_info_sistema(self):
-        """Muestra información técnica del sistema con estadísticas de cifrado."""
-        print("\n🔧 INFORMACIÓN DEL SISTEMA")
-        print("\n📊 Algoritmos Criptográficos Implementados:")
-        print("• Autenticación: bcrypt con salt automático")
-        print("• Cifrado simétrico: AES-256-GCM")
-        print("• Autenticación de mensajes: Integrada en GCM")
-        print("• Generación de claves: secrets (CSPRNG)")
-        print("• Vectores únicos: Nonce de 96 bits")
-        
-        print("\n📈 Estado de la Implementación:")
-        print("✅ Apartado 1: Sistema de autenticación (bcrypt)")
-        print("✅ Apartado 2: Cifrado simétrico (AES-256-GCM)")
-        print("✅ Apartado 3: Autenticación integrada (GCM)")
-        
-        # Mostrar estadísticas detalladas
-        try:
-            usuarios_count = len(self.usuario_manager.listar_usuarios())
-            stats_cifrado = self.mensaje_manager.obtener_estadisticas_cifrado()
-            
-            print(f"\n📊 Estadísticas del Sistema:")
-            print(f"• Usuarios registrados: {usuarios_count}")
-            print(f"• Total de mensajes: {stats_cifrado.get('total_mensajes', 0)}")
-            print(f"• Mensajes cifrados: {stats_cifrado.get('mensajes_cifrados', 0)}")
-            print(f"• Porcentaje cifrado: {stats_cifrado.get('porcentaje_cifrado', 0):.1f}%")
-            
-            # Info técnica del sistema criptográfico
-            crypto_info = stats_cifrado.get('sistema_criptografico', {})
-            if crypto_info:
-                print(f"\n🔐 Sistema Criptográfico:")
-                print(f"• Algoritmo: {crypto_info.get('algoritmo', 'N/A')}")
-                print(f"• Tamaño de clave: {crypto_info.get('tamaño_clave', 'N/A')}")
-                print(f"• Tamaño de nonce: {crypto_info.get('tamaño_nonce', 'N/A')}")
-                print(f"• Autenticación: {crypto_info.get('autenticacion', 'N/A')}")
-                
-                # Verificar integridad del sistema
-                if self.mensaje_manager.verificar_sistema_cifrado():
-                    print("• Estado: 🟢 SISTEMA OPERATIVO")
-                else:
-                    print("• Estado: 🔴 ERROR EN SISTEMA")
-            
-            # Información sobre logs
-            print(f"\n📋 Sistema de Logs:")
-            print(f"• Ubicación: logs/app_{datetime.now().strftime('%Y-%m-%d')}.log")
-            print(f"• Errores: logs/errores_{datetime.now().strftime('%Y-%m-%d')}.log")
-            print("• Nivel consola: Solo errores críticos")
-            print("• Nivel archivo: Información detallada")
-            
-        except Exception as e:
-            print(f"\n📊 Estadísticas: Error obteniendo datos ({e})")
+
     
     def ejecutar(self):
         """Ejecuta el bucle principal de la aplicación."""
@@ -577,24 +515,22 @@ class AplicacionQuedadasPerros:
                 if not self.usuario_actual:
                     # Menú principal para usuarios no autenticados
                     self.mostrar_menu_principal()
-                    opcion = input("🔄 Selecciona una opción: ").strip()
+                    opcion = input("Selecciona una opción: ").strip()
                     
                     if opcion == "1":
                         self.registrar_usuario()
                     elif opcion == "2":
                         self.iniciar_sesion()
                     elif opcion == "3":
-                        self.mostrar_info_sistema()
-                    elif opcion == "4":
-                        print("\n👋 ¡Hasta luego! Gracias por usar la aplicación.")
+                        print("\n¡Hasta luego! Gracias por usar la aplicación.")
                         break
                     else:
-                        print("❌ Opción inválida")
+                        print("Opción inválida")
                         
                 else:
                     # Menú para usuario autenticado
                     self.mostrar_menu_usuario()
-                    opcion = input("🔄 Selecciona una opción: ").strip()
+                    opcion = input("Selecciona una opción: ").strip()
                     
                     if opcion == "1":
                         self.registrar_perro()
@@ -610,17 +546,17 @@ class AplicacionQuedadasPerros:
                         self.borrar_cuenta()
                     elif opcion == "7":
                         self.usuario_actual = None
-                        print("✓ Sesión cerrada exitosamente")
+                        print("Sesión cerrada exitosamente")
                     else:
-                        print("❌ Opción inválida")
+                        print("Opción inválida")
                         
             except KeyboardInterrupt:
-                print("\n\n📛 Aplicación interrumpida por el usuario")
+                print("\n\n Aplicación interrumpida por el usuario")
                 break
             except Exception as e:
-                print(f"\n❌ Error inesperado: {e}")
+                print(f"\n Error inesperado: {e}")
                 self.logger.error(f"Error en aplicación: {e}", exc_info=True)
-                print("💡 Continuando ejecución...")
+                print(" Continuando ejecución...")
 
 def main():
     """Función principal de la aplicación."""
@@ -628,7 +564,7 @@ def main():
         app = AplicacionQuedadasPerros()
         app.ejecutar()
     except Exception as e:
-        print(f"❌ Error iniciando aplicación: {e}")
+        print(f" Error iniciando aplicación: {e}")
         return 1
     
     return 0
